@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml;
@@ -6,6 +7,7 @@ using Microsoft.OData.Edm;
 using Microsoft.OData.Edm.Csdl;
 using Microsoft.OData.Edm.Validation;
 using Newtonsoft.Json.Linq;
+
 
 namespace ODataServiceToSwagger
 {
@@ -183,11 +185,9 @@ namespace ODataServiceToSwagger
 
     class Program
     {
-        private const string metadataURI = " http://services.odata.org/V4/TripPinServiceRW/$metadata";
         private const string host = "services.odata.org";
         private const string version = "0.1.0";
-        private const string basePath = "/V4/(S(cnbm44wtbc1v5bgrlek5lpcc))/TripPinServiceRW";
-        private const string outputFile = @"E:\swagger-ui\dist\swagger\trippin.json";
+        private const string basePath = "/V4/(S(cnbm44wtbc1v5bgrlek5lpcc))/TripPinServiceRW";        
 
         static JObject CreateSwaggerPathForEntitySet(IEdmEntitySet entitySet)
         {
@@ -518,9 +518,31 @@ namespace ODataServiceToSwagger
 
         static void Main(string[] args)
         {
+            if (args == null || args.Length < 1)
+                throw new ArgumentNullException("Must provide all required arguments"); //TODO: Fix this error to suggest help
+            //Get the metadata address
+            Uri metadataUri = new Uri(args[0]); //Use System.Uri class to validate format
+            //Get the output file location
+            string outputFile;
+            if (args.Length > 1 && args[1] != null)
+            {
+                if (!Directory.Exists(args[1]))
+                    Directory.CreateDirectory(args[1]);
+                outputFile = args[1];
+            }
+            else
+            {
+                outputFile = System.Reflection.Assembly.GetEntryAssembly().Location;
+            }
+
+            /// TODO:
+            /// 0) Optionally take a .json file instead of the URI for the first argument
+            /// 1) Make arguments queryable (i.e. "Type the URI for the metadata and press Return"
+            /// 2) Make a 'help' parameter that displays available information and arguments            
+
             IEdmModel model;
             IEnumerable<EdmError> errors;
-            EdmxReader.TryParse(XmlReader.Create(metadataURI), out model, out errors);
+            EdmxReader.TryParse(XmlReader.Create(metadataUri.ToString()), out model, out errors);
 
             JObject swaggerDoc = new JObject()
             {
@@ -528,7 +550,7 @@ namespace ODataServiceToSwagger
                 {"info", new JObject()
                 {
                     {"title", "OData Service"},
-                    {"description", "The OData Service at " + metadataURI},
+                    {"description", "The OData Service at " + metadataUri},
                     {"version", version},
                     {"x-odata-version", "4.0"}
                 }},
